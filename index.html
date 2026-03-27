@@ -98,10 +98,10 @@
         // 判断是否为中转平台密钥
         const isProxyKey = apiKey.startsWith('sk-');
 
-        // 2. 【核心修复】智能选择模型版本
-        // 报错 model not found 是因为中转平台系统里没有录入 gemini 的名称映射。
-        // 对于这类中转平台，使用 `gpt-4o-mini` 是 100% 存在的，而且速度和质量与 gemini 几乎一致。
-        const MODEL_NAME = isProxyKey ? "gpt-4o-mini" : "gemini-1.5-flash"; 
+        // 2. 【核心修复：提升模型智商】
+        // 如果是中转平台，强制使用 gpt-4o（目前逻辑推理和语境理解最顶级的模型，完美胜任中转枢纽任务）。
+        // 废弃容易偷懒的 gpt-4o-mini。
+        const MODEL_NAME = isProxyKey ? "gpt-4o" : "gemini-1.5-flash"; 
 
         // 3. 中转 API 基础地址
         const API_BASE_URL = "https://api.gptsapi.net";
@@ -330,14 +330,20 @@
             const sourceLangEn = langs[srcCode].enName;
             const targetLangEn = langs[tgtCode].enName;
 
-            // 提示词设计
-            const systemPrompt = `You are an expert professional translator, proficient in Asian languages including Chinese, Lao, Vietnamese, and English. 
-Your task is to FIRST internally translate the provided ${sourceLangEn} text into highly accurate and logical English (acting as a pivot language to ensure strict logic and structure are maintained). SECOND, translate that exact English meaning into natural, culturally appropriate ${targetLangEn}. 
+            // 【核心修复：重构思维链 Prompt】
+            // 明确划分 Step 1 和 Step 2，强制大模型必须在输出的 JSON 中生成 English，
+            // 以此强迫模型进行 S-V-O 逻辑梳理（Chain of Thought），找回丢失的准确率。
+            const systemPrompt = `You are a top-tier professional translator specializing in Asian languages. Your task is to translate ${sourceLangEn} to ${targetLangEn}.
+CRITICAL INSTRUCTION: You MUST use English as a pivot language to guarantee Subject-Verb-Object (S-V-O) logic accuracy. Do not translate directly.
 
-You MUST return the result strictly in valid JSON format exactly like this (do NOT return any markdown formatting or extra text):
+Follow these steps internally:
+Step 1: Translate the ${sourceLangEn} text into highly accurate and logical English.
+Step 2: Translate that exact English meaning into natural, culturally appropriate ${targetLangEn}.
+
+You MUST return ONLY a valid JSON object with exactly these two keys:
 {
-    "english": "The internal intermediate English translation (for logic alignment)",
-    "target": "The final ${targetLangEn} translation"
+    "english": "<String: The English translation from Step 1>",
+    "target": "<String: The final ${targetLangEn} translation from Step 2>"
 }`;
             
             // 【双引擎构建】根据当前走的协议组装对应的数据体
