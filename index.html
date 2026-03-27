@@ -92,18 +92,30 @@
     <script>
         // ======= API 配置区 =======
         
-        // 1. 填入您的 API Key (已替换为您提供的 Wildcard 中转 Key)
+        // 1. 填入您的 API Key
         const apiKey = "sk-Rfp1a81d0e27d2b9c18d75f1a91fa6a3ad0ff9cdcb1QM3Lf"; 
         
         // 2. 选择模型版本
         const MODEL_NAME = "gemini-1.5-flash"; 
 
-        // 3. 【核心修改】这里设置您的中转 API 基础地址 (已根据您的截图替换为 gptsapi.net)
+        // 3. 设置您的中转 API 基础地址
         const API_BASE_URL = "https://api.gptsapi.net";
         
-        // 组装最终的请求 URL
-        const API_URL = `${API_BASE_URL}/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+        // 【核心修复】智能判断 Key 类型并适配请求格式
+        // 如果是 sk- 开头的中转 Key，不要把 key 放在 URL 里，而是通过 Headers 发送
+        const isProxyKey = apiKey.startsWith('sk-');
+        const API_URL = isProxyKey
+            ? `${API_BASE_URL}/v1beta/models/${MODEL_NAME}:generateContent`
+            : `${API_BASE_URL}/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
 
+        // 构建请求头
+        const reqHeaders = {
+            'Content-Type': 'application/json'
+        };
+        // 如果是中转平台的 sk- 密钥，必须将其放在 Authorization Header 中进行鉴权
+        if (isProxyKey) {
+            reqHeaders['Authorization'] = `Bearer ${apiKey}`;
+        }
 
         // ======= 语言配置字典 =======
         const langs = {
@@ -332,9 +344,10 @@
             };
 
             try {
+                // 使用动态构建的 reqHeaders 包含中转平台身份验证
                 const data = await fetchWithRetry(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: reqHeaders,
                     body: JSON.stringify(payload)
                 });
 
