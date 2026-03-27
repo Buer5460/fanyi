@@ -95,8 +95,8 @@
         // 1. 填入您的 API Key
         const apiKey = "sk-Rfp1a81d0e27d2b9c18d75f1a91fa6a3ad0ff9cdcb1QM3Lf"; 
         
-        // 2. 选择模型版本
-        const MODEL_NAME = "gemini-1.5-flash"; 
+        // 2. 选择模型版本 (已降级为所有平台100%支持的最基础版，解决 model not found 问题)
+        const MODEL_NAME = "gemini-pro"; 
 
         // 3. 设置您的中转 API 基础地址
         const API_BASE_URL = "https://api.gptsapi.net";
@@ -324,23 +324,25 @@
             const sourceLangEn = langs[srcCode].enName;
             const targetLangEn = langs[tgtCode].enName;
 
-            // 依然保持强大的 Pivot Language 逻辑（使用英语作为底层枢纽）
-            const systemPrompt = `You are an expert professional translator, proficient in Asian languages including Chinese, Lao, Vietnamese, and English. The user will provide a ${sourceLangEn} text. Your task is to FIRST internally translate the ${sourceLangEn} into highly accurate and logical English (acting as a pivot language to ensure strict logic and structure are maintained). SECOND, translate that exact English meaning into natural, culturally appropriate ${targetLangEn}. Return the result strictly in JSON format.`;
+            // 为了极大提高在各种老旧中转平台上的成功率：
+            // 1. 我们不再使用高版本独有的 systemInstruction 或 responseSchema 特性
+            // 2. 将规则直接硬编码到单条对话记录中，并强制它返回 JSON
+            const systemPrompt = `You are an expert professional translator, proficient in Asian languages including Chinese, Lao, Vietnamese, and English. 
+Your task is to FIRST internally translate the provided ${sourceLangEn} text into highly accurate and logical English (acting as a pivot language to ensure strict logic and structure are maintained). SECOND, translate that exact English meaning into natural, culturally appropriate ${targetLangEn}. 
+
+You MUST return the result strictly in valid JSON format exactly like this (do NOT return any markdown formatting or extra text):
+{
+    "english": "The internal intermediate English translation (for logic alignment)",
+    "target": "The final ${targetLangEn} translation"
+}`;
             
             const payload = {
-                contents: [{ parts: [{ text: `Original ${sourceLangEn} text: ${sourceText}` }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            english: { type: "STRING", description: "The internal intermediate English translation (for logic alignment)" },
-                            target: { type: "STRING", description: `The final ${targetLangEn} translation` }
-                        },
-                        required: ["target"]
+                contents: [
+                    { 
+                        role: "user", 
+                        parts: [{ text: `${systemPrompt}\n\n---\nOriginal ${sourceLangEn} text: ${sourceText}` }] 
                     }
-                }
+                ]
             };
 
             try {
@@ -351,8 +353,10 @@
                     body: JSON.stringify(payload)
                 });
 
-                const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                let resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (resultText) {
+                    // 过滤掉大模型有时会自动包裹的 Markdown JSON 标签，防止 JSON.parse 报错
+                    resultText = resultText.replace(/```json/gi, '').replace(/```/g, '').trim();
                     const parsedResult = JSON.parse(resultText);
                     document.getElementById('target-output').innerText = parsedResult.target;
                     document.getElementById('target-output').style.color = "#1f2937"; // 恢复正常颜色
@@ -366,11 +370,11 @@
                 // 将具体的错误信息展示在界面上
                 let friendlyMsg = "⚠️ 发生错误：\n";
                 if (error.message.includes("Failed to fetch")) {
-                    friendlyMsg += "网络请求被拦截。请检查您的网络环境，或将代码中的 API_BASE_URL 修改为 Wildcard 的中转地址。";
+                    friendlyMsg += "网络请求被拦截。请检查您的网络环境，或将代码中的 API_BASE_URL 修改为有效的中转地址。";
                 } else if (error.message.includes("403") || error.message.includes("API key") || error.message.includes("401")) {
                     friendlyMsg += "API Key 无效、已过期或平台配额不足。请确认中转平台的 Key 状态。";
                 } else if (error.message.includes("404")) {
-                    friendlyMsg += "指定的模型不存在，请确认当前中转平台是否支持该模型。";
+                    friendlyMsg += "中转平台未提供该模型的访问权限。请确认平台支持 gemini-pro 模型。";
                 } else {
                     friendlyMsg += error.message;
                 }
