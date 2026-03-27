@@ -44,15 +44,15 @@
         <div class="text-center mb-6 relative">
             <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500 mr-2"><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><circle cx="12" cy="12" r="10"/></svg>
-                东盟多语互译桥
+                <span id="app-title">东盟多语互译桥</span>
             </h1>
-            <p class="text-gray-500 text-sm">通过英语作为中间逻辑桥梁，实现中、老、越精准互译</p>
+            <p id="app-desc" class="text-gray-500 text-sm">通过英语作为中间逻辑桥梁，实现中、老、越精准互译</p>
             
-            <!-- ✨ 新增：模型引擎选择器 ✨ -->
+            <!-- ✨ 模型引擎选择器 ✨ -->
             <div class="absolute top-0 right-0 flex items-center">
                 <select id="ai-model" class="bg-gray-100 border border-gray-200 text-gray-500 text-xs rounded-md py-1.5 pl-2 pr-6 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 cursor-pointer transition-colors hover:bg-gray-200">
-                    <option value="gpt-4o">引擎: GPT-4o (推荐)</option>
-                    <option value="claude-3-5-sonnet-20241022">引擎: Claude 3.5 (地道)</option>
+                    <option value="gpt-4o">引擎: GPT-4o</option>
+                    <option value="claude-3-5-sonnet-20241022">引擎: Claude 3.5</option>
                     <option value="gemini-1.5-pro">引擎: Gemini 1.5 Pro</option>
                 </select>
             </div>
@@ -95,7 +95,7 @@
                     <!-- 清空按钮稍微调整对齐 -->
                     <button onclick="clearText('source-input')" class="text-gray-400 hover:text-red-500 py-1.5 px-2 text-sm transition-colors flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        清空
+                        <span id="txt-clear">清空</span>
                     </button>
                 </div>
             </div>
@@ -114,7 +114,7 @@
                 <label id="label-target" class="text-sm font-semibold text-gray-700">翻译结果 (老挝语)</label>
                 <button onclick="copyToClipboard('target-output')" class="bg-gray-100 text-gray-600 hover:bg-gray-200 py-1 px-3 rounded text-xs font-medium transition-colors flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                    复制文字
+                    <span id="txt-copy">复制文字</span>
                 </button>
             </div>
             <div id="target-output" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-lg min-h-[120px] text-lg text-gray-800 break-words whitespace-pre-wrap">翻译结果将在这里显示...</div>
@@ -129,13 +129,8 @@
     <script>
         // ======= API 配置区 =======
         const apiKey = "sk-Rfp1a81d0e27d2b9c18d75f1a91fa6a3ad0ff9cdcb1QM3Lf"; 
-        
-        // 中转 API 基础地址
         const API_BASE_URL = "https://api.gptsapi.net";
-        
-        // 由于使用 Wildcard 的 sk- 密钥，统一使用兼容性最好的 OpenAI 通信协议
         const API_URL = `${API_BASE_URL}/v1/chat/completions`;
-
         const reqHeaders = { 
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
@@ -147,6 +142,73 @@
             'lo': { code: 'lo', name: 'ພາສາລາວ (老挝语)', shortName: 'ລາວ', speechCode: 'lo-LA', enName: 'Lao', theme: 'border-rose-500', btnTheme: 'bg-rose-600 hover:bg-rose-700' },
             'vi': { code: 'vi', name: 'Tiếng Việt (越南语)', shortName: 'Việt', speechCode: 'vi-VN', enName: 'Vietnamese', theme: 'border-emerald-500', btnTheme: 'bg-emerald-600 hover:bg-emerald-700' }
         };
+
+        // ======= 全界面多语言包 (i18n) =======
+        const i18n = {
+            'zh': {
+                appTitle: "东盟多语互译桥",
+                appDesc: "通过英语作为中间逻辑桥梁，实现中、老、越精准互译",
+                srcLabel: "原文 ({source})",
+                tgtLabel: "翻译结果 ({target})",
+                voiceBtn: "语音录入",
+                clearBtn: "清空",
+                placeholder: "请输入或点击上方语音按钮录入...",
+                translateBtn: "开始翻译 ({source} ➔ {target})",
+                copyBtn: "复制文字",
+                targetPlaceholder: "翻译结果将在这里显示...",
+                toastRecording: "🎙️ 正在录音，请开始说话...",
+                toastTransDone: "✅ 翻译完成 ({model})",
+                toastTransEmpty: "请输入需要翻译的内容",
+                toastCopied: "✅ 复制成功！",
+                toastCopyFail: "❌ 复制失败",
+                toastNoCopy: "没有可复制的内容",
+                toastMicDenied: "⚠️ 麦克风权限被拒绝！\n1. 请在系统设置中允许使用麦克风。\n2. 若在微信内，请点击右上角在系统浏览器打开。"
+            },
+            'lo': {
+                appTitle: "ຂົວແປພາສາອາຊຽນ",
+                appDesc: "ແປພາສາຈີນ, ລາວ, ຫວຽດນາມ ຢ່າງຖືກຕ້ອງໂດຍໃຊ້ພາສາອັງກິດເປັນຂົວຕໍ່",
+                srcLabel: "ຕົ້ນສະບັບ ({source})",
+                tgtLabel: "ຜົນການແປ ({target})",
+                voiceBtn: "ພິມດ້ວຍສຽງ",
+                clearBtn: "ລຶບລ້າງ",
+                placeholder: "ກະລຸນາປ້ອນຂໍ້ຄວາມ ຫຼື ກົດປຸ່ມສຽງ...",
+                translateBtn: "ເລີ່ມການແປ ({source} ➔ {target})",
+                copyBtn: "ສຳເນົາຂໍ້ຄວາມ",
+                targetPlaceholder: "ຜົນການແປຈະສະແດງຢູ່ທີ່ນີ້...",
+                toastRecording: "🎙️ ກຳລັງບັນທຶກສຽງ, ກະລຸນາເວົ້າ...",
+                toastTransDone: "✅ ແປສຳເລັດແລ້ວ ({model})",
+                toastTransEmpty: "ກະລຸນາປ້ອນເນື້ອຫາທີ່ຕ້ອງການແປ",
+                toastCopied: "✅ ສຳເນົາສຳເລັດແລ້ວ!",
+                toastCopyFail: "❌ ສຳເນົາລົ້ມເຫລວ",
+                toastNoCopy: "ບໍ່ມີເນື້ອຫາທີ່ຈະສຳເນົາ",
+                toastMicDenied: "⚠️ ປະຕິເສດການເຂົ້າເຖິງໄມໂຄຣໂຟນ!\nກະລຸນາອະນຸຍາດໃນການຕັ້ງຄ່າໂທລະສັບຂອງທ່ານ."
+            },
+            'vi': {
+                appTitle: "Cầu dịch thuật ASEAN",
+                appDesc: "Dịch chính xác Trung, Lào, Việt thông qua tiếng Anh làm cầu nối",
+                srcLabel: "Văn bản gốc ({source})",
+                tgtLabel: "Kết quả dịch ({target})",
+                voiceBtn: "Giọng nói",
+                clearBtn: "Xóa",
+                placeholder: "Vui lòng nhập hoặc nhấp vào nút giọng nói...",
+                translateBtn: "Bắt đầu dịch ({source} ➔ {target})",
+                copyBtn: "Sao chép",
+                targetPlaceholder: "Kết quả dịch sẽ hiển thị ở đây...",
+                toastRecording: "🎙️ Đang ghi âm, vui lòng nói...",
+                toastTransDone: "✅ Dịch xong ({model})",
+                toastTransEmpty: "Vui lòng nhập nội dung cần dịch",
+                toastCopied: "✅ Đã sao chép!",
+                toastCopyFail: "❌ Lỗi sao chép",
+                toastNoCopy: "Không có nội dung để sao chép",
+                toastMicDenied: "⚠️ Quyền truy cập micrô bị từ chối!\nVui lòng cho phép sử dụng micrô trong cài đặt."
+            }
+        };
+
+        // 获取当前界面语种包
+        function getLangTexts() {
+            const srcCode = document.getElementById('source-lang').value;
+            return i18n[srcCode] || i18n['zh'];
+        }
 
         // ======= UI 更新逻辑 =======
         function handleLangChange(changedSelect) {
@@ -177,12 +239,30 @@
             const tgtCode = document.getElementById('target-lang').value;
             const srcLang = langs[srcCode];
             const tgtLang = langs[tgtCode];
+            const texts = getLangTexts(); // 获取对应翻译文本
 
-            document.getElementById('label-source').innerText = `原文 (${srcLang.name})`;
-            document.getElementById('label-target').innerText = `翻译结果 (${tgtLang.name})`;
-            document.getElementById('source-input').placeholder = `请输入或点击上方语音按钮录入...`;
-            document.getElementById('target-output').innerText = `翻译结果将在这里显示...`;
-            document.getElementById('txt-translate-all').innerText = `开始翻译 (${srcLang.shortName} ➔ ${tgtLang.shortName})`;
+            // 全界面更新
+            document.getElementById('app-title').innerText = texts.appTitle;
+            document.getElementById('app-desc').innerText = texts.appDesc;
+            
+            document.getElementById('label-source').innerText = texts.srcLabel.replace('{source}', srcLang.shortName);
+            document.getElementById('label-target').innerText = texts.tgtLabel.replace('{target}', tgtLang.shortName);
+            
+            document.getElementById('source-input').placeholder = texts.placeholder;
+            
+            const targetOutput = document.getElementById('target-output');
+            // 如果原本显示的是占位符（无论中老越哪种占位符），或者为空，则更新为新语种的占位符
+            if (targetOutput.innerText === i18n['zh'].targetPlaceholder || 
+                targetOutput.innerText === i18n['lo'].targetPlaceholder || 
+                targetOutput.innerText === i18n['vi'].targetPlaceholder || 
+                targetOutput.innerText.trim() === "") {
+                targetOutput.innerText = texts.targetPlaceholder;
+            }
+
+            document.getElementById('txt-translate-all').innerText = texts.translateBtn.replace('{source}', srcLang.shortName).replace('{target}', tgtLang.shortName);
+            document.getElementById('txt-voice').innerText = texts.voiceBtn;
+            document.getElementById('txt-clear').innerText = texts.clearBtn;
+            document.getElementById('txt-copy').innerText = texts.copyBtn;
 
             const cardMain = document.getElementById('card-main');
             cardMain.className = `glass-card p-5 border-t-4 ${srcLang.theme} transition-colors duration-300 shadow-lg mt-4`;
@@ -211,22 +291,37 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 const voiceBtn = document.getElementById('btn-voice');
-                voiceBtn.onclick = function() { showToast("⚠️ 当前浏览器不支持语音输入，请使用 Chrome、Safari 或 Edge 原生浏览器。"); };
+                voiceBtn.onclick = function() { showToast("⚠️ Browser not supported."); };
                 voiceBtn.classList.add("opacity-50", "cursor-not-allowed");
             }
             updateUI(); 
         };
 
-        function toggleVoiceInput() {
+        async function toggleVoiceInput() {
+            const texts = getLangTexts();
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
-                showToast("⚠️ 当前浏览器不支持语音输入，请尝试使用 Chrome 或手机自带的 Safari 浏览器。");
+                showToast("⚠️ Browser not supported.");
                 return;
             }
 
             if (isRecording) {
                 stopVoiceInput();
                 return;
+            }
+
+            // 【核心修复：强制拉起原生麦克风权限弹窗】
+            // 很多手机浏览器拦截了隐式的 SpeechRecognition 授权，我们先用 getUserMedia 显式要权限
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    // 权限拿到后，立刻释放麦克风轨道，让位给 SpeechRecognition
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (err) {
+                    console.error("Mic Permission Denied:", err);
+                    showToast(texts.toastMicDenied, 5000);
+                    return; // 明确被拒绝了，不再往下走
+                }
             }
 
             if (!recognition) {
@@ -237,8 +332,7 @@
                 recognition.onstart = function() {
                     isRecording = true;
                     document.getElementById('btn-voice').classList.add('recording');
-                    document.getElementById('txt-voice').innerText = '聆听中...';
-                    showToast("🎙️ 正在录音，请开始说话...");
+                    showToast(getLangTexts().toastRecording);
                 };
 
                 recognition.onresult = function(event) {
@@ -255,13 +349,11 @@
                 };
 
                 recognition.onerror = function(event) {
-                    let errorMsg = "语音识别出错：" + event.error;
+                    let errorMsg = "Error: " + event.error;
                     if (event.error === 'not-allowed') {
-                        errorMsg = "⚠️ 麦克风权限被拒绝！\n1. 请在设置中允许使用麦克风。\n2. 微信/APP内置浏览器可能拦截，请在Safari/Chrome中打开。";
+                        errorMsg = getLangTexts().toastMicDenied;
                     } else if (event.error === 'no-speech') {
-                        errorMsg = "⚠️ 未检测到声音，请检查麦克风或靠近一点说话。";
-                    } else if (event.error === 'network') {
-                        errorMsg = "⚠️ 网络连接失败，语音服务不可用。";
+                        errorMsg = "No speech detected.";
                     }
                     showToast(errorMsg, 4000); 
                     stopVoiceInput();
@@ -283,7 +375,6 @@
             const btnVoice = document.getElementById('btn-voice');
             if (btnVoice) {
                 btnVoice.classList.remove('recording');
-                document.getElementById('txt-voice').innerText = '语音录入';
             }
         }
 
@@ -312,10 +403,11 @@
 
         async function translateAll() {
             if (isRecording) stopVoiceInput();
+            const texts = getLangTexts();
 
             const sourceText = document.getElementById('source-input').value.trim();
             if (!sourceText) {
-                showToast("请输入需要翻译的内容");
+                showToast(texts.toastTransEmpty);
                 return;
             }
 
@@ -326,11 +418,8 @@
             const sourceLangEn = langs[srcCode].enName;
             const targetLangEn = langs[tgtCode].enName;
             
-            // 获取用户当前选择的模型
             const selectedModel = document.getElementById('ai-model').value;
 
-            // ✨ 【核心修复 1】重构“思维链”提示词，放弃束缚 AI 逻辑的 JSON 格式
-            // 强制大模型在后台默默地先写下英文，再写目标语言，保证 S-V-O 主谓宾结构的绝对严谨。
             const systemPrompt = `You are a top-tier professional translator specializing in Asian languages. Your task is to translate the user's text from ${sourceLangEn} to ${targetLangEn}.
 
 CRITICAL: You must use an English "Pivot Language" technique to guarantee logical Subject-Verb-Object (S-V-O) accuracy. ${sourceLangEn} often omits subjects or uses flexible structures, which causes errors in direct translation.
@@ -350,7 +439,6 @@ Output your response EXACTLY in the following format (do not use JSON, do not ad
                     { role: "system", content: systemPrompt },
                     { role: "user", content: `Original ${sourceLangEn} text: ${sourceText}` }
                 ],
-                // ✨ 【核心修复 2】调低 temperature 参数至 0.3，极大降低翻译的“发散性”，让其严格直译
                 temperature: 0.3 
             };
 
@@ -364,36 +452,33 @@ Output your response EXACTLY in the following format (do not use JSON, do not ad
                 const resultText = data.choices?.[0]?.message?.content;
 
                 if (resultText) {
-                    // ✨ 【核心修复 3】使用正则剥离掉中间的英文过程，只提取 [FINAL_TARGET] 后面的终极翻译
                     let finalTranslation = "";
                     const targetMatch = resultText.match(/\[FINAL_TARGET\]([\s\S]*)/i);
                     
                     if (targetMatch && targetMatch[1]) {
                         finalTranslation = targetMatch[1].trim();
                     } else if (resultText.includes("[PIVOT_ENGLISH]")) {
-                        // 兼容大模型偶尔不按常理出牌的分隔符
                         finalTranslation = resultText.split(/\[FINAL_TARGET\]/i).pop().trim();
                     } else {
-                        // 极低概率的保底策略
                         finalTranslation = resultText;
                     }
 
                     document.getElementById('target-output').innerText = finalTranslation;
                     document.getElementById('target-output').style.color = "#1f2937"; 
-                    showToast(`✅ 翻译完成 (${selectedModel})`);
+                    
+                    showToast(texts.toastTransDone.replace('{model}', selectedModel.split('-')[1] || selectedModel));
                 } else {
                     throw new Error("Invalid response form API (No content)");
                 }
             } catch (error) {
                 let friendlyMsg = "⚠️ 发生错误：\n";
-                if (error.message.includes("Failed to fetch")) friendlyMsg += "网络请求被拦截。请检查您的网络环境，或确认 API_BASE_URL。";
-                else if (error.message.includes("403") || error.message.includes("API key") || error.message.includes("401")) friendlyMsg += "API Key 无效、已过期或平台配额不足。请确认中转平台的 Key 状态。";
-                else if (error.message.includes("404")) friendlyMsg += "中转平台未提供该模型的访问权限。";
+                if (error.message.includes("Failed to fetch")) friendlyMsg += "网络异常。";
+                else if (error.message.includes("403") || error.message.includes("API key") || error.message.includes("401")) friendlyMsg += "API Key 异常。";
                 else friendlyMsg += error.message;
 
                 document.getElementById('target-output').innerText = friendlyMsg;
                 document.getElementById('target-output').style.color = "#dc2626";
-                showToast("❌ 请求失败，请查看错误详情");
+                showToast("❌ Error");
             } finally {
                 setLoading('translate-all', false);
             }
@@ -419,18 +504,20 @@ Output your response EXACTLY in the following format (do not use JSON, do not ad
 
         function clearText(elementId) {
             document.getElementById(elementId).value = '';
-            document.getElementById('target-output').innerText = "翻译结果将在这里显示...";
+            const texts = getLangTexts();
+            document.getElementById('target-output').innerText = texts.targetPlaceholder;
             document.getElementById('target-output').style.color = "#1f2937"; 
         }
 
         function copyToClipboard(elementId) {
             let textToCopy = "";
+            const texts = getLangTexts();
             const element = document.getElementById(elementId);
             if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') textToCopy = element.value;
             else textToCopy = element.innerText;
 
-            if (!textToCopy || textToCopy.includes('翻译结果将在这里显示') || textToCopy.includes('⚠️ 发生错误')) {
-                showToast("没有可复制的内容");
+            if (!textToCopy || textToCopy.includes(i18n['zh'].targetPlaceholder) || textToCopy.includes(i18n['lo'].targetPlaceholder) || textToCopy.includes(i18n['vi'].targetPlaceholder) || textToCopy.includes('⚠️')) {
+                showToast(texts.toastNoCopy);
                 return;
             }
 
@@ -440,9 +527,9 @@ Output your response EXACTLY in the following format (do not use JSON, do not ad
             textArea.select();
             try {
                 document.execCommand('copy');
-                showToast("✅ 复制成功！");
+                showToast(texts.toastCopied);
             } catch (err) {
-                showToast("❌ 复制失败");
+                showToast(texts.toastCopyFail);
             }
             document.body.removeChild(textArea);
         }
