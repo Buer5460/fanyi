@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>东盟多语互译桥 (ZH-LO-VI)</title>
+    <title>东盟多语互译桥 (ZH-LO-VI) - 支持中转</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -90,10 +90,20 @@
     </div>
 
     <script>
-        // Gemini API 配置
-        const apiKey = "AIzaSyCUn5vizYkkiqQ7Dv9ziSpuB-WRIU6LPTk"; // 用户提供的测试 Key (如果无效请更换为新的 Key)
-        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025"; // 若报错可尝试更换为 "gemini-1.5-flash"
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+        // ======= API 配置区 =======
+        
+        // 1. 填入您的 API Key (已替换为您提供的 Wildcard 中转 Key)
+        const apiKey = "sk-Rfp1a81d0e27d2b9c18d75f1a91fa6a3ad0ff9cdcb1QM3Lf"; 
+        
+        // 2. 选择模型版本
+        const MODEL_NAME = "gemini-1.5-flash"; 
+
+        // 3. 【核心修改】这里设置您的中转 API 基础地址 (已根据您的截图替换为 gptsapi.net)
+        const API_BASE_URL = "https://api.gptsapi.net";
+        
+        // 组装最终的请求 URL
+        const API_URL = `${API_BASE_URL}/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+
 
         // ======= 语言配置字典 =======
         const langs = {
@@ -260,14 +270,13 @@
         }
 
         // ======= 翻译核心逻辑 =======
-        async function fetchWithRetry(url, options, maxRetries = 2) { // 减少无用重试时间
+        async function fetchWithRetry(url, options, maxRetries = 2) { 
             const delays = [1000, 2000];
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
                     
                     if (!response.ok) {
-                        // 捕获 API 真实报错（如 403 API Key 无效、400 参数错误）
                         let errorDetail = "";
                         try {
                             const errorData = await response.json();
@@ -279,7 +288,6 @@
                     }
                     return await response.json();
                 } catch (error) {
-                    // 如果是最后一次尝试，或者直接是本地跨域/网络连接被阻止 (TypeError: Failed to fetch)
                     if (i === maxRetries - 1 || error.message.includes("Failed to fetch")) {
                         throw error;
                     }
@@ -345,11 +353,11 @@
                 // 将具体的错误信息展示在界面上
                 let friendlyMsg = "⚠️ 发生错误：\n";
                 if (error.message.includes("Failed to fetch")) {
-                    friendlyMsg += "网络请求被拦截。请检查您的网络环境（如果在中国大陆访问，需要开启全局代理），或 API 域名被封锁。";
-                } else if (error.message.includes("403") || error.message.includes("API key")) {
-                    friendlyMsg += "API Key 无效、已过期或因泄露被官方自动禁用。请更换全新的 Key。";
+                    friendlyMsg += "网络请求被拦截。请检查您的网络环境，或将代码中的 API_BASE_URL 修改为 Wildcard 的中转地址。";
+                } else if (error.message.includes("403") || error.message.includes("API key") || error.message.includes("401")) {
+                    friendlyMsg += "API Key 无效、已过期或平台配额不足。请确认中转平台的 Key 状态。";
                 } else if (error.message.includes("404")) {
-                    friendlyMsg += "指定的模型不存在，请尝试修改代码中的 MODEL_NAME 为 'gemini-1.5-flash'。";
+                    friendlyMsg += "指定的模型不存在，请确认当前中转平台是否支持该模型。";
                 } else {
                     friendlyMsg += error.message;
                 }
