@@ -84,15 +84,15 @@
         </div>
 
         <!-- 提示信息弹窗 -->
-        <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50 whitespace-nowrap">
             提示信息
         </div>
     </div>
 
     <script>
         // Gemini API 配置
-        const apiKey = "AIzaSyCUn5vizYkkiqQ7Dv9ziSpuB-WRIU6LPTk"; // 用户提供的测试 Key
-        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+        const apiKey = "AIzaSyCUn5vizYkkiqQ7Dv9ziSpuB-WRIU6LPTk"; // 用户提供的测试 Key (如果无效请更换为新的 Key)
+        const MODEL_NAME = "gemini-2.5-flash-preview-09-2025"; // 若报错可尝试更换为 "gemini-1.5-flash"
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
 
         // ======= 语言配置字典 =======
@@ -260,17 +260,29 @@
         }
 
         // ======= 翻译核心逻辑 =======
-        async function fetchWithRetry(url, options, maxRetries = 5) {
-            const delays = [1000, 2000, 4000, 8000, 16000];
+        async function fetchWithRetry(url, options, maxRetries = 2) { // 减少无用重试时间
+            const delays = [1000, 2000];
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
+                    
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        // 捕获 API 真实报错（如 403 API Key 无效、400 参数错误）
+                        let errorDetail = "";
+                        try {
+                            const errorData = await response.json();
+                            if (errorData.error && errorData.error.message) {
+                                errorDetail = errorData.error.message;
+                            }
+                        } catch (e) { }
+                        throw new Error(`HTTP Error ${response.status}: ${errorDetail}`);
                     }
                     return await response.json();
                 } catch (error) {
-                    if (i === maxRetries - 1) throw error;
+                    // 如果是最后一次尝试，或者直接是本地跨域/网络连接被阻止 (TypeError: Failed to fetch)
+                    if (i === maxRetries - 1 || error.message.includes("Failed to fetch")) {
+                        throw error;
+                    }
                     await new Promise(resolve => setTimeout(resolve, delays[i]));
                 }
             }
@@ -322,13 +334,29 @@
                 if (resultText) {
                     const parsedResult = JSON.parse(resultText);
                     document.getElementById('target-output').innerText = parsedResult.target;
+                    document.getElementById('target-output').style.color = "#1f2937"; // 恢复正常颜色
                     showToast("翻译完成！");
                 } else {
-                    throw new Error("Invalid response from API");
+                    throw new Error("Invalid response form API (No content)");
                 }
             } catch (error) {
                 console.error("Translation Error:", error);
-                showToast("翻译出错，请稍后重试");
+                
+                // 将具体的错误信息展示在界面上
+                let friendlyMsg = "⚠️ 发生错误：\n";
+                if (error.message.includes("Failed to fetch")) {
+                    friendlyMsg += "网络请求被拦截。请检查您的网络环境（如果在中国大陆访问，需要开启全局代理），或 API 域名被封锁。";
+                } else if (error.message.includes("403") || error.message.includes("API key")) {
+                    friendlyMsg += "API Key 无效、已过期或因泄露被官方自动禁用。请更换全新的 Key。";
+                } else if (error.message.includes("404")) {
+                    friendlyMsg += "指定的模型不存在，请尝试修改代码中的 MODEL_NAME 为 'gemini-1.5-flash'。";
+                } else {
+                    friendlyMsg += error.message;
+                }
+
+                document.getElementById('target-output').innerText = friendlyMsg;
+                document.getElementById('target-output').style.color = "#dc2626"; // 设置错误文字为红色
+                showToast("请求失败，请查看错误详情");
             } finally {
                 setLoading('translate-all', false);
             }
@@ -356,6 +384,7 @@
         function clearText(elementId) {
             document.getElementById(elementId).value = '';
             document.getElementById('target-output').innerText = "翻译结果将在这里显示...";
+            document.getElementById('target-output').style.color = "#1f2937"; // 恢复正常颜色
         }
 
         function copyToClipboard(elementId) {
@@ -368,7 +397,7 @@
                 textToCopy = element.innerText;
             }
 
-            if (!textToCopy || textToCopy.includes('翻译结果将在这里显示')) {
+            if (!textToCopy || textToCopy.includes('翻译结果将在这里显示') || textToCopy.includes('⚠️ 发生错误')) {
                 showToast("没有可复制的内容");
                 return;
             }
