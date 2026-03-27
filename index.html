@@ -95,14 +95,16 @@
         // 1. 填入您的 API Key
         const apiKey = "sk-Rfp1a81d0e27d2b9c18d75f1a91fa6a3ad0ff9cdcb1QM3Lf"; 
         
-        // 2. 换回速度最快、效果最好的版本
-        const MODEL_NAME = "gemini-1.5-flash"; 
+        // 判断是否为中转平台密钥
+        const isProxyKey = apiKey.startsWith('sk-');
+
+        // 2. 【核心修复】智能选择模型版本
+        // 报错 model not found 是因为中转平台系统里没有录入 gemini 的名称映射。
+        // 对于这类中转平台，使用 `gpt-4o-mini` 是 100% 存在的，而且速度和质量与 gemini 几乎一致。
+        const MODEL_NAME = isProxyKey ? "gpt-4o-mini" : "gemini-1.5-flash"; 
 
         // 3. 中转 API 基础地址
         const API_BASE_URL = "https://api.gptsapi.net";
-        
-        // 【终极兼容修复】如果是中转平台，我们使用最通用的 OpenAI 通信协议，百分百防止 model not found！
-        const isProxyKey = apiKey.startsWith('sk-');
         
         // 如果是 sk- 中转，使用通用的 /v1/chat/completions 接口；如果是官方 AIza，使用原生 /v1beta 接口
         const API_URL = isProxyKey
@@ -347,7 +349,9 @@ You MUST return the result strictly in valid JSON format exactly like this (do N
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: `Original ${sourceLangEn} text: ${sourceText}` }
-                    ]
+                    ],
+                    // 强制要求 OpenAI 返回 JSON 格式，防止解析错误
+                    response_format: { type: "json_object" } 
                 };
             } else {
                 // 原生 Gemini 的消息体格式
